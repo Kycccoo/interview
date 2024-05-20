@@ -2,9 +2,11 @@
   <q-page class="row q-pt-xl">
     <div class="full-width q-px-xl">
       <div class="q-mb-xl">
+        <q-input v-model="searchInput" label="查詢 API 資料" />
         <q-input v-model="tempData.name" label="姓名" />
         <q-input v-model="tempData.age" label="年齡" />
-        <q-btn color="primary" class="q-mt-md">新增</q-btn>
+        <q-btn color="primary" class="q-mt-md" @click="handleAdd">新增</q-btn>
+        <q-btn color="primary" class="q-mt-md" @click="fetchData">查詢</q-btn>
       </div>
 
       <q-table
@@ -80,7 +82,8 @@
 <script setup lang="ts">
 import axios from 'axios';
 import { QTableProps } from 'quasar';
-import { ref } from 'vue';
+import { ref, onMounted, computed } from 'vue';
+
 interface btnType {
   label: string;
   icon: string;
@@ -119,13 +122,72 @@ const tableButtons = ref([
   },
 ]);
 
+const apiData = ref(null);
+
+async function fetchData() {
+  try {
+    const response = await axios.get(
+      'https://dahua.metcfire.com.tw/api/CRUDTest/a'
+    );
+    apiData.value = response.data;
+  } catch (error) {
+    console.error('Failed to fetch data:', error);
+  }
+}
+onMounted(fetchData);
+
 const tempData = ref({
   name: '',
   age: '',
 });
-function handleClickOption(btn, data) {
-  // ...
+
+function handleAdd() {
+  const newData = { name: tempData.value.name, age: tempData.value.age };
+  blockData.value.push(newData);
 }
+
+function handleDelete(row) {
+  const index = blockData.value.findIndex((item) => item === row);
+  if (index !== -1) {
+    blockData.value.splice(index, 1);
+  }
+}
+
+function handleEdit(data) {
+  tempData.value.name = data.name;
+  tempData.value.age = data.age;
+
+  const index = blockData.value.findIndex((item) => item === data);
+  if (index !== -1) {
+    blockData.value.splice(index, 1);
+  }
+  alert('請在上方編輯');
+}
+
+function handleClickOption(btn, data) {
+  switch (btn.status) {
+    case 'edit':
+      handleEdit(data);
+      break;
+    case 'delete':
+      handleDelete(data);
+      break;
+    default:
+      break;
+  }
+}
+const searchInput = ref('');
+const filteredData = computed(() => {
+  return apiData.value.filter((item) => {
+    return (
+      item.name.toLowerCase().includes(searchInput.value.toLowerCase()) ||
+      item.age
+        .toString()
+        .toLowerCase()
+        .includes(searchInput.value.toLowerCase())
+    );
+  });
+});
 </script>
 
 <style lang="scss" scoped>
